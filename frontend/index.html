@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Performance Test Solution</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Configuration -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <h2>LLM Tester</h2>
+                <div class="status-indicator">
+                    <span class="dot" id="run-status-dot"></span>
+                    <span id="run-status-text">Ready</span>
+                </div>
+            </div>
+
+            <form id="config-form" class="config-form">
+                <div class="form-group">
+                    <label for="base_url">Server Base URL</label>
+                    <input type="text" id="base_url" name="base_url" placeholder="http://localhost:8000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="api_key">API Key (Optional)</label>
+                    <input type="password" id="api_key" name="api_key" placeholder="EMPTY">
+                </div>
+
+                <div class="form-group">
+                    <label for="model">Model Name</label>
+                    <input type="text" id="model" name="model" placeholder="gpt-3.5-turbo" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="concurrency">Concurrency</label>
+                        <input type="number" id="concurrency" name="concurrency" value="1" min="1" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="iterations">Iterations</label>
+                        <input type="number" id="iterations" name="iterations" value="0" min="0" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="duration">Duration (s)</label>
+                        <input type="number" id="duration" name="duration" value="60" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="prompt">Test Prompt</label>
+                    <textarea id="prompt" name="prompt" rows="3" required>Explain the theory of relativity in 100 words.</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="custom_params">Custom params (JSON format)</label>
+                    <textarea id="custom_params" name="custom_params" rows="2" placeholder='{"temperature": 0.0, "reasoning_effort": "high"}'></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" id="btn-start" class="btn primary">Start Test</button>
+                    <button type="button" id="btn-stop" class="btn danger" disabled>Stop</button>
+                    <button type="button" id="btn-clear" class="btn secondary">Clear Results</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" id="btn-export-json" class="btn secondary" style="flex:1;">Export JSON</button>
+                        <button type="button" id="btn-export-md" class="btn secondary" style="flex:1;">Export MD</button>
+                    </div>
+                </div>
+            </form>
+        </aside>
+
+        <!-- Main Dashboard -->
+        <main class="dashboard">
+            <header class="dashboard-header">
+                <h1>Performance Dashboard</h1>
+                <div class="global-stats glass-panel">
+                    <div class="stat-item">
+                        <span class="label">Total Requests</span>
+                        <span class="value" id="stat-total">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Success Rate</span>
+                        <span class="value" id="stat-success">100%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Tokens Generated</span>
+                        <span class="value" id="stat-tokens">0</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="metrics-grid">
+                <!-- TTFT Card -->
+                <div class="metric-card glass-panel">
+                    <h3>TTFT (Time To First Token)</h3>
+                    <div class="value-display">
+                        <span class="big-value" id="val-ttft-avg">0.00</span>
+                        <span class="unit">s</span>
+                    </div>
+                    <div class="sub-metrics">
+                        <span>Min: <b id="val-ttft-min">0.00</b>s</span>
+                        <span>Max: <b id="val-ttft-max">0.00</b>s</span>
+                    </div>
+                </div>
+
+                <!-- TPOT Card -->
+                <div class="metric-card glass-panel">
+                    <h3>TPOT (Time Per Output Token)</h3>
+                    <div class="value-display">
+                        <span class="big-value" id="val-tpot-avg">0.00</span>
+                        <span class="unit">ms</span>
+                    </div>
+                    <div class="sub-metrics">
+                        <span>Min: <b id="val-tpot-min">0.00</b>ms</span>
+                        <span>Max: <b id="val-tpot-max">0.00</b>ms</span>
+                    </div>
+                </div>
+
+                <!-- Latency Card -->
+                <div class="metric-card glass-panel">
+                    <h3>Total Latency</h3>
+                    <div class="value-display">
+                        <span class="big-value" id="val-lat-avg">0.00</span>
+                        <span class="unit">s</span>
+                    </div>
+                    <div class="sub-metrics">
+                        <span>Min: <b id="val-lat-min">0.00</b>s</span>
+                        <span>Max: <b id="val-lat-max">0.00</b>s</span>
+                    </div>
+                </div>
+                
+                <!-- FPS/TPS Card -->
+                <div class="metric-card glass-panel">
+                    <h3>FPS / TPS (Tokens/sec)</h3>
+                    <div class="value-display">
+                        <span class="big-value" id="val-tps-avg">0.0</span>
+                        <span class="unit">tokens/s</span>
+                    </div>
+                    <div class="sub-metrics">
+                        <span>Min: <b id="val-tps-min">0.0</b></span>
+                        <span>Max: <b id="val-tps-max">0.0</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-wrapper glass-panel">
+                    <h3>Latency over Time</h3>
+                    <div class="canvas-holder">
+                        <canvas id="chart-latency"></canvas>
+                    </div>
+                </div>
+                <div class="chart-wrapper glass-panel">
+                    <h3>TPS over Time</h3>
+                    <div class="canvas-holder">
+                        <canvas id="chart-tps"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Logs Table -->
+            <div class="logs-container glass-panel">
+                <h3>Recent Requests</h3>
+                <div class="table-responsive">
+                    <table id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Status</th>
+                                <th>TTFT (s)</th>
+                                <th>Latency (s)</th>
+                                <th>Out Tokens</th>
+                                <th>Prompt Tokens</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows inserted dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
