@@ -48,10 +48,14 @@ llm-speed-test/
 ### 설치 및 실행
 
 ```bash
+# 코드 다운로드
+git clone https://github.com/HyungJiny/llm-performance-test.git
+
 # 디렉토리 접근
-cd /path/to/llm-speed-test
+cd ./llm-speed-test
 
 # 패키지 설치 및 웹 서버 기동 (최초 1회에는 가상환경 구성이 포함되어 있습니다)
+# 실행을 위해서는 Python 3.8 이상 환경이 필요합니다.
 ./run.sh
 ```
 
