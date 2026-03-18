@@ -55,14 +55,16 @@ class LLMClient:
                                 
                             # Count output tokens
                             choices = chunk.get("choices", [])
-                            if choices and choices[0].get("delta", {}).get("content"):
-                                output_tokens += 1
+                            if choices:
+                                delta = choices[0].get("delta", {})
+                                if delta.get("content") or delta.get("reasoning_content") or delta.get("reasoning"):
+                                    output_tokens += 1
                                 
                             # Extract usage if present (some APIs send this in the last chunk)
                             if "usage" in chunk and chunk["usage"]:
                                 prompt_tokens = chunk["usage"].get("prompt_tokens", 0)
                                 if "completion_tokens" in chunk["usage"]:
-                                    output_tokens = chunk["usage"].get("completion_tokens", output_tokens)
+                                    output_tokens = max(output_tokens, chunk["usage"].get("completion_tokens", 0))
 
                         except json.JSONDecodeError:
                             logger.warning(f"Failed to parse chunk: {data_str}")
