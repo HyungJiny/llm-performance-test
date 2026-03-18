@@ -118,6 +118,8 @@ function appendLog(reqNo, metric) {
     const tbody = document.querySelector('#logs-table tbody');
     const tr = document.createElement('tr');
     
+    let tps = metric.latency > 0 ? (metric.output_tokens / metric.latency).toFixed(2) : "0.00";
+
     if (metric.success) {
         tr.innerHTML = `
             <td>${reqNo}</td>
@@ -126,12 +128,13 @@ function appendLog(reqNo, metric) {
             <td>${metric.latency.toFixed(3)}</td>
             <td>${metric.output_tokens}</td>
             <td>${metric.prompt_tokens}</td>
+            <td>${tps}</td>
         `;
     } else {
         tr.innerHTML = `
             <td>${reqNo}</td>
             <td class="status-err">ERR</td>
-            <td colspan="4">${metric.error || 'Unknown Error'}</td>
+            <td colspan="5">${metric.error || 'Unknown Error'}</td>
         `;
     }
     
@@ -344,12 +347,13 @@ function exportMd() {
     md += `- Average TPS: ${avgTps.toFixed(3)} tokens/s\n\n`;
     
     md += `## 2. Raw Results (Top 100)\n`;
-    md += `| Request # | Success | TTFT (s) | Latency (s) | TPOT (ms) | Output Tokens |\n`;
-    md += `|---|---|---|---|---|---|\n`;
+    md += `| Request # | Success | TTFT (s) | Latency (s) | TPOT (ms) | Output Tokens | TPS |\n`;
+    md += `|---|---|---|---|---|---|---|\n`;
     
     results.slice(0, 100).forEach((r, i) => {
         let tpotStr = r.tpot ? (r.tpot * 1000).toFixed(2) : "0.00";
-        md += `| ${i+1} | ${r.success ? 'Pass ✅' : 'Fail ❌'} | ${r.ttft.toFixed(3)} | ${r.latency.toFixed(3)} | ${tpotStr} | ${r.output_tokens} |\n`;
+        let tpsStr = r.latency > 0 ? (r.output_tokens / r.latency).toFixed(2) : "0.00";
+        md += `| ${i+1} | ${r.success ? 'Pass ✅' : 'Fail ❌'} | ${r.ttft.toFixed(3)} | ${r.latency.toFixed(3)} | ${tpotStr} | ${r.output_tokens} | ${tpsStr} |\n`;
     });
     
     // YYYYMMDD_HHMM format
